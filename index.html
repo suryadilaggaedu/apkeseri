@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>APKESERI — Kenali Diri, Fahami Emosi</title>
+<meta name="description" content="APKESERI — aplikasi pembelajaran kendiri untuk murid sekolah rendah kenali diri dan fahami emosi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+<!-- PWA: manifest + identiti aplikasi -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f8fd6">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- PWA: paparan standalone di iOS Safari (belum sokong manifest sepenuhnya) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="APKESERI">
+
+<!-- PWA: paparan standalone di Android/Chrome -->
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+
+<div class="bg-scene" aria-hidden="true">
+  <span class="blob blob-a"></span>
+  <span class="blob blob-b"></span>
+  <span class="blob blob-c"></span>
+</div>
+
+<div id="app" class="app-shell">
+
+  <header class="app-header" id="appHeader" hidden>
+    <div class="app-header__brand">
+      <img src="icons/icon-192.png" alt="APKESERI" class="app-header__logo">
+    </div>
+    <div class="app-header__user" id="appHeaderUser">
+      <span class="app-header__greeting" id="headerGreeting">Hai!</span>
+      <button type="button" class="progress-chip" id="headerProgressChip" aria-label="Progress keseluruhan">
+        <svg viewBox="0 0 36 36" class="progress-chip__ring" aria-hidden="true">
+          <circle class="progress-chip__track" cx="18" cy="18" r="15.5"></circle>
+          <circle class="progress-chip__value" id="headerProgressRing" cx="18" cy="18" r="15.5"></circle>
+        </svg>
+        <span class="progress-chip__label" id="headerProgressLabel">0%</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="app-nav" id="appNav" hidden aria-label="Navigasi utama">
+    <button type="button" class="app-nav__item is-active" id="navDashboard" data-nav="dashboard">
+      <span class="app-nav__icon" aria-hidden="true">🏠</span>
+      <span>Dashboard</span>
+    </button>
+  </nav>
+
+  <main class="app-main" id="appMain">
+
+    <section class="screen is-active" id="screen-welcome" data-screen="welcome">
+      <div class="screen__inner screen__inner--center">
+        <div class="brand-lockup">
+          <h1 class="brand-lockup__logo-wrap">
+            <img
+              src="assets/logo-apkeseri.png"
+              alt="APKESERI"
+              class="brand-lockup__logo"
+              width="2171"
+              height="724"
+            >
+          </h1>
+          <p class="brand-lockup__subtitle">Kenali Diri, Fahami Emosi 🌱</p>
+        </div>
+
+        <div class="glass-card glass-card--enter">
+          <p class="glass-card__line">Hai, selamat datang ke APKESERI!</p>
+          <p class="glass-card__line">Di sini kita akan buat beberapa aktiviti untuk kenali diri dan fahami emosi awak.</p>
+          <p class="glass-card__line glass-card__line--ask">Jom kita mula?</p>
+          <button type="button" class="btn btn--primary btn--block" id="btnStart">MULA</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-onboarding" data-screen="onboarding">
+      <div class="screen__inner screen__inner--center">
+        <div class="glass-card glass-card--enter">
+          <p class="glass-card__line glass-card__line--lead">Hai!</p>
+          <p class="glass-card__line glass-card__line--ask">Boleh saya tahu nama awak?</p>
+
+          <form id="onboardingForm" class="field-group" novalidate>
+            <label for="nameInput" class="field-label">Nama awak</label>
+            <input
+              type="text"
+              id="nameInput"
+              name="name"
+              class="field-input"
+              placeholder="Contoh: Aiman"
+              autocomplete="off"
+              maxlength="40"
+            >
+            <p class="field-error" id="nameError" role="alert" hidden>Ops! Boleh masukkan nama awak dulu 😊</p>
+            <button type="submit" class="btn btn--primary btn--block">TERUSKAN</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-profile-created" data-screen="profile-created">
+      <div class="screen__inner screen__inner--center">
+        <div class="glass-card glass-card--enter glass-card--celebrate">
+          <p class="glass-card__line glass-card__line--lead">Yay! Profil awak dah siap!</p>
+          <p class="glass-card__line" id="welcomeNameLine">Selamat datang ke APKESERI, <span id="welcomeName">Kawan</span>!</p>
+
+          <button type="button" class="btn btn--primary btn--block" id="btnGoDashboard">JOM MULA</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-dashboard" data-screen="dashboard">
+      <div class="screen__inner">
+
+        <div class="dash-greeting">
+          <h1 class="dash-greeting__title" id="dashGreeting">Hai, Kawan! 👋</h1>
+          <p class="dash-greeting__subtitle" id="dashSubline">Jom kenali diri awak.</p>
+        </div>
+
+        <div class="glass-card progress-card">
+          <div class="progress-card__ring-wrap">
+            <svg viewBox="0 0 120 120" class="progress-ring" aria-hidden="true">
+              <circle class="progress-ring__track" cx="60" cy="60" r="52"></circle>
+              <circle class="progress-ring__value" id="progressRingValue" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="progress-ring__center">
+              <span class="progress-ring__percent" id="progressPercent">0%</span>
+              <span class="progress-ring__sprout" aria-hidden="true">🌱</span>
+            </div>
+          </div>
+          <div class="progress-card__text">
+            <h2 class="progress-card__title">KESEDARAN KENDIRI</h2>
+            <p class="progress-card__desc" id="progressDesc">Belum ada aktiviti selesai lagi. Jom mula yang pertama!</p>
+          </div>
+        </div>
+
+        <div class="activity-list" id="activityList" aria-label="Senarai aktiviti">
+        </div>
+
+        <p class="dash-cert-reminder" id="dashCertReminder" hidden>
+          Belum muat turun kad? <button type="button" class="dash-cert-reminder__link" id="btnDashCertReminder">MUAT TURUN KAD</button>
+        </p>
+
+      </div>
+    </section>
+
+    <section class="screen" id="screen-activity-1" data-screen="activity-1">
+      <div class="screen__inner">
+
+        <div class="a1-topbar">
+          <button type="button" class="a1-back" id="a1BackBtn" aria-label="Kembali ke langkah sebelumnya" hidden>
+            <span aria-hidden="true">←</span> Kembali
+          </button>
+          <span class="a1-step-indicator" id="a1StepIndicator" hidden>Langkah 1 daripada 4</span>
+        </div>
+
+        <div class="a1-steps" id="a1Steps">
+
+          <div class="a1-step is-active" data-step="intro">
+            <div class="glass-card glass-card--enter">
+              <h2 class="a1-title">Jom Kenali Emosi</h2>
+              <p class="glass-card__line" id="a1IntroGreeting">Hai, Kawan! 👋</p>
+              <p class="glass-card__line">Setiap hari kita boleh rasa macam-macam emosi.</p>
+              <p class="glass-card__line">Kadang-kadang kita gembira, kadang-kadang sedih, marah, takut atau risau.</p>
+              <p class="glass-card__line glass-card__line--ask">Jom kita cuba kenal pasti apa yang awak rasa sekarang.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a1BtnIntroStart">JOM MULA</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="kenali-emosi-dahulu">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Kenali Emosi</p>
+              <p class="glass-card__line">Sebelum kita pilih, jom kita tengok dulu macam-macam emosi yang orang boleh rasa.</p>
+              <p class="glass-card__line glass-card__line--ask">Baca perlahan-lahan ya 😊</p>
+              <div class="emotion-learn-list" id="emotionLearnList"></div>
+              <button type="button" class="btn btn--primary btn--block" id="a1BtnLearnNext" style="margin-top:6px;">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="pilih-emoji">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Emoji Mana Menggambarkan Diri Awak?</p>
+              <p class="glass-card__line">Daripada semua emosi tadi, yang mana satu paling menggambarkan perasaan awak sekarang?</p>
+              <div class="emotion-grid" id="emotionGrid"></div>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="konfirmasi-emoji">
+            <div class="glass-card glass-card--enter">
+              <div class="a1-emotion-display" id="a1ConfirmEmoji"></div>
+              <p class="glass-card__line glass-card__line--lead" id="a1ConfirmText"></p>
+              <button type="button" class="btn btn--primary btn--block" id="a1BtnConfirmNext">TERUSKAN →</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="kategori">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Emosi Ini Positif atau Negatif?</p>
+              <p class="glass-card__line" id="a1KategoriQuestion">Pada pendapat awak, emosi ini positif atau negatif?</p>
+
+              <div class="choice-grid" id="a1KategoriGrid"></div>
+
+              <div id="a1KategoriResult" hidden>
+                <p class="glass-card__line glass-card__line--lead" id="a1KategoriResultTitle"></p>
+                <p class="glass-card__line" id="a1KategoriResultBody"></p>
+                <button type="button" class="btn btn--primary btn--block" id="a1BtnKategoriNext"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="refleksi">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Sekarang, apa yang awak dah belajar?</p>
+              <p class="glass-card__line" style="margin-bottom:16px;">Awak boleh pilih lebih daripada satu.</p>
+              <div class="choice-grid choice-grid--reflection" id="reflectionGrid"></div>
+              <button type="button" class="btn btn--primary btn--block" id="a1BtnFinish">SELESAI AKTIVITI</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="selesai">
+            <div class="glass-card glass-card--enter glass-card--celebrate">
+              <p class="glass-card__line glass-card__line--lead">Tahniah!</p>
+              <p class="glass-card__line">Awak berjaya selesaikan Aktiviti 1.</p>
+              <p class="glass-card__line glass-card__line--muted">Awak dah mula kenal pasti emosi dan memahami keadaan diri awak.</p>
+
+              <div class="a1-complete-progress">
+                <span class="a1-complete-progress__label">Aktiviti 1 daripada 4</span>
+                <span class="a1-complete-progress__percent">25%</span>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--block" id="a1BtnToActivity2">JOM KE AKTIVITI 2 →</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-activity-2" data-screen="activity-2">
+      <div class="screen__inner">
+
+        <div class="a1-topbar">
+          <button type="button" class="a1-back" id="a2BackBtn" aria-label="Kembali ke langkah sebelumnya" hidden>
+            <span aria-hidden="true">←</span> Kembali
+          </button>
+          <span class="a1-step-indicator" id="a2StepIndicator" hidden>Langkah 1 daripada 4</span>
+        </div>
+
+        <div class="a1-steps" id="a2Steps">
+
+          <div class="a1-step is-active" data-step="intro">
+            <div class="glass-card glass-card--enter">
+              <h2 class="a1-title">Termometer Emosi</h2>
+              <p class="glass-card__line" id="a2IntroGreeting">Hai, Kawan! 👋</p>
+              <p class="glass-card__line">Kali ni kita nak cuba kenal pasti aras emosi awak.</p>
+              <p class="glass-card__line">Ada enam aras emosi yang kita akan guna sekejap lagi.</p>
+              <p class="glass-card__line glass-card__line--ask">Tak perlu risau tentang jawapan betul atau salah. Pilih sahaja yang paling dekat dengan keadaan awak.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnIntroStart">JOM MULA</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="termometer">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Pada aras mana awak rasa keadaan emosi awak sekarang?</p>
+              <p class="glass-card__line">Gerakkan termometer atau pilih aras yang paling dekat dengan apa yang awak rasa.</p>
+
+              <div class="thermo-wrap">
+                <div class="thermo-tube-col" aria-hidden="true">
+                  <div class="thermo-tube">
+                    <div class="thermo-fill" id="thermoFill"></div>
+                  </div>
+                  <div class="thermo-bulb"></div>
+                </div>
+                <div class="thermo-levels" id="thermoLevels" role="group" aria-label="Pilih aras emosi 0 hingga 5"></div>
+              </div>
+
+              <div class="thermo-readout">
+                <span class="thermo-readout__value" id="thermoValue">– / 5</span>
+                <span class="thermo-readout__label" id="thermoLabel">Pilih aras di bawah 👇</span>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnTermometerNext">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="feedback">
+            <div class="glass-card glass-card--enter">
+              <div class="thermo-feedback-value" id="a2FeedbackValue"></div>
+              <p class="glass-card__line glass-card__line--lead" id="a2FeedbackText"></p>
+              <p class="glass-card__line" id="a2FeedbackPraise">Bagus! Awak dah berjaya mengenal pasti aras emosi awak. 👍</p>
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnFeedbackNext">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="punca">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Apa yang menyebabkan awak rasa begitu?</p>
+              <p class="glass-card__line" style="margin-bottom:14px;">Awak boleh pilih contoh di bawah, atau tulis sendiri.</p>
+              <div class="choice-grid" id="a2PuncaGrid"></div>
+              <div id="a2PuncaCustomWrap" style="margin-top:12px;" hidden>
+                <label for="a2PuncaTextarea" class="field-label">Punca/sebab awak</label>
+                <textarea id="a2PuncaTextarea" class="a1-textarea" placeholder="Awak boleh tulis punca atau sebab awak sendiri."></textarea>
+              </div>
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnPuncaNext" style="margin-top:14px;">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="ringkasan">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Ringkasan awak</p>
+              <div class="a2-summary" id="a2RingkasanSummary"></div>
+              <p class="glass-card__line" style="margin-top:10px;">Terima kasih sebab berkongsi. Mengenal pasti punca emosi boleh membantu awak memahami keadaan diri.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnRingkasanNext">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="refleksi">
+            <div class="glass-card glass-card--enter">
+              <p class="glass-card__line glass-card__line--lead">Okay, sekarang cuba fikir sekejap...</p>
+              <p class="glass-card__line" style="margin-bottom:16px;">Macam mana keadaan awak bila emosi itu terasa kuat?</p>
+              <div class="choice-grid" id="a2ReflectionGrid"></div>
+              <p class="glass-card__line glass-card__line--muted" id="a2ReflectionFeedback" style="margin-top:14px;" hidden></p>
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnFinish" style="margin-top:8px;">SELESAI AKTIVITI</button>
+            </div>
+          </div>
+
+          <div class="a1-step" data-step="selesai">
+            <div class="glass-card glass-card--enter glass-card--celebrate">
+              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
+              <p class="glass-card__line glass-card__line--lead">Tahniah!</p>
+              <p class="glass-card__line">Awak dah berjaya selesaikan Aktiviti 2.</p>
+              <p class="glass-card__line glass-card__line--muted">Awak sekarang dah tahu cara melihat aras emosi yang awak rasa.</p>
+
+              <div class="a2-summary" id="a2Summary"></div>
+
+              <div class="a1-complete-progress">
+                <span class="a1-complete-progress__label">Aktiviti 2 daripada 4</span>
+                <span class="a1-complete-progress__percent">50%</span>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--block" id="a2BtnToActivity3">JOM KE AKTIVITI 3 →</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-activity-3" data-screen="activity-3">
+      <div class="screen__inner">
+
+        <div class="a1-topbar">
+          <button type="button" class="a1-back" id="a3BackBtn" aria-label="Kembali ke langkah sebelumnya" hidden>
+            <span aria-hidden="true">←</span> Kembali
+          </button>
+          <span class="a1-step-indicator" id="a3StepIndicator" hidden>Langkah 1 daripada 4</span>
+        </div>
+
+        <div class="a3-steps" id="a3Steps">
+
+          <div class="a3-step is-active" data-step="intro">
+            <div class="glass-card glass-card--enter">
+              <h2 class="a1-title">Chici Chaca Emosiku</h2>
+              <p class="glass-card__line" id="a3IntroGreeting">Hai, Kawan! 👋</p>
+              <p class="glass-card__line">Kali ni kita nak buat aktiviti sambil menyanyi dan bergerak.</p>
+              <p class="glass-card__line">Jom kita gunakan lagu untuk bantu kita rasa lebih santai dan ceria.</p>
+              <p class="glass-card__line glass-card__line--ask">Sedia?</p>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnIntroStart">JOM MULA</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="persediaan">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">Sebelum mula...</h3>
+              <p class="glass-card__line">Pastikan awak berada di tempat yang selesa.</p>
+              <p class="glass-card__line">Kalau boleh, berdiri atau duduk dengan ruang yang cukup untuk bergerak.</p>
+              <p class="glass-card__line">Tak perlu buat pergerakan yang susah. Ikut kemampuan awak sahaja.</p>
+              <p class="glass-card__line glass-card__line--ask">Dah bersedia?</p>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnReady">SAYA DAH BERSEDIA</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="video">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">🎵 Jom menyanyi!</h3>
+              <p class="glass-card__line">Tekan Play dan ikut nyanyian dalam video.</p>
+              <p class="glass-card__line">Kalau ada pergerakan, cuba ikut sekali.</p>
+              <p class="glass-card__line glass-card__line--muted">Tak perlu sempurna. Yang penting awak cuba dan nikmati aktiviti ini. 😊</p>
+
+              <div class="video-frame-wrap">
+                <iframe
+                  class="video-frame"
+                  id="a3VideoFrame"
+                  src="https://www.youtube.com/embed/1dm2htUvAtM"
+                  title="Chici Chaca Emosiku — video aktiviti nyanyian dan pergerakan"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                ></iframe>
+              </div>
+
+              <div class="video-hints">
+                <span class="video-hint">▶ Tekan Play</span>
+                <span class="video-hint">🎵 Ikut nyanyi</span>
+                <span class="video-hint">🕺 Ikut pergerakan</span>
+              </div>
+
+              <div class="video-fallback">
+                <p class="video-fallback__text">Video tak dapat dimainkan di sini? Tak apa 😊</p>
+                <a
+                  class="btn btn--secondary btn--block"
+                  href="https://www.youtube.com/watch?v=1dm2htUvAtM"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >BUKA VIDEO DI YOUTUBE ↗</a>
+              </div>
+
+              <p class="glass-card__line glass-card__line--lead" style="margin-top:22px;">Dah selesai menyanyi? 🎵</p>
+              <p class="glass-card__line">Bagus! Sekarang kita fikir sekejap tentang apa yang awak rasa.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnVideoDone">YA, JOM TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="refleksi-emosi">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">💭 Jom fikir sekejap...</h3>
+              <p class="glass-card__line glass-card__line--ask">Semasa menyanyi dan bergerak tadi, apa emosi yang paling awak rasa?</p>
+              <div class="emotion-grid" id="a3EmotionGrid"></div>
+              <p class="glass-card__line glass-card__line--muted" id="a3EmotionFeedback" style="margin-top:14px;" hidden></p>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnEmotionNext" style="margin-top:8px;">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="ketenangan">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">Sekarang, macam mana tahap ketenangan awak?</h3>
+              <div class="choice-grid" id="a3CalmnessGrid"></div>
+              <p class="glass-card__line glass-card__line--muted" id="a3CalmnessFeedback" style="margin-top:14px;" hidden></p>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnCalmnessNext" style="margin-top:8px;">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="refleksi-akhir">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">💭 Satu perkara yang awak perasan...</h3>
+              <p class="glass-card__line glass-card__line--ask">Selepas menyanyi dan bergerak tadi, apa yang awak perasan tentang diri awak?</p>
+              <div class="choice-grid" id="a3FinalReflectionGrid"></div>
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnFinish" style="margin-top:8px;">SELESAI AKTIVITI</button>
+            </div>
+          </div>
+
+          <div class="a3-step" data-step="selesai">
+            <div class="glass-card glass-card--enter glass-card--celebrate">
+              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
+              <p class="glass-card__line glass-card__line--lead">Tahniah!</p>
+              <p class="glass-card__line">Awak dah selesai Aktiviti 3!</p>
+              <p class="glass-card__line glass-card__line--muted">Awak dah cuba menggunakan nyanyian dan pergerakan untuk membantu diri rasa lebih santai.</p>
+
+              <div class="a2-summary" id="a3Summary"></div>
+
+              <div class="a1-complete-progress">
+                <span class="a1-complete-progress__label">Aktiviti 3 daripada 4</span>
+                <span class="a1-complete-progress__percent">75%</span>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--block" id="a3BtnToActivity4">JOM KE AKTIVITI 4 →</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-activity-4" data-screen="activity-4">
+      <div class="screen__inner">
+
+        <div class="a1-topbar">
+          <button type="button" class="a1-back" id="a4BackBtn" aria-label="Kembali ke langkah sebelumnya" hidden>
+            <span aria-hidden="true">←</span> Kembali
+          </button>
+          <span class="a1-step-indicator" id="a4StepIndicator" hidden>Langkah 1 daripada 4</span>
+        </div>
+
+        <div class="a4-steps" id="a4Steps">
+
+          <div class="a4-step is-active" data-step="intro">
+            <div class="glass-card glass-card--enter">
+              <h2 class="a1-title">Teknik Daun Luruh</h2>
+              <p class="glass-card__line" id="a4IntroGreeting">Hai, Kawan! 👋</p>
+              <p class="glass-card__line">Bayangkan awak berada di satu tempat yang tenang, dengan angin sepoi-sepoi dan daun yang bergerak perlahan.</p>
+              <p class="glass-card__line">Hari ni kita nak belajar satu teknik pernafasan yang dipanggil <strong>Teknik Daun Luruh</strong>.</p>
+              <p class="glass-card__line glass-card__line--ask">Tak perlu tergesa-gesa. Kita buat perlahan-lahan.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a4BtnIntroStart">JOM MULA</button>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="sediakan-diri">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">Sediakan diri</h3>
+              <p class="glass-card__line">Duduk dengan tegak.</p>
+              <p class="glass-card__line">Pastikan awak selesa.</p>
+              <p class="glass-card__line">Fokus sekejap pada pernafasan awak.</p>
+              <p class="glass-card__line">Bayangkan awak berada di tempat yang damai.</p>
+              <p class="glass-card__line glass-card__line--ask">Kalau dah bersedia, jom kita belajar tekniknya.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a4BtnSediaReady">SAYA DAH BERSEDIA</button>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="kenali-teknik">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">Teknik 5-3-5</h3>
+
+              <div class="a4-technique-list">
+                <div class="a4-technique-row">
+                  <span class="a4-technique-row__num">5 saat</span>
+                  <span class="a4-technique-row__desc">🌬️ Tarik nafas perlahan-lahan melalui hidung.</span>
+                </div>
+                <div class="a4-technique-arrow" aria-hidden="true">↓</div>
+                <div class="a4-technique-row">
+                  <span class="a4-technique-row__num">3 saat</span>
+                  <span class="a4-technique-row__desc">⏸️ Tahan nafas.</span>
+                </div>
+                <div class="a4-technique-arrow" aria-hidden="true">↓</div>
+                <div class="a4-technique-row">
+                  <span class="a4-technique-row__num">5 saat</span>
+                  <span class="a4-technique-row__desc">💨 Hembus perlahan-lahan melalui mulut.</span>
+                </div>
+              </div>
+
+              <p class="glass-card__line" style="margin-top:18px;">Tak perlu laju.</p>
+              <p class="glass-card__line glass-card__line--ask">Ikut kiraan APKESERI.</p>
+              <button type="button" class="btn btn--primary btn--block" id="a4BtnTryOnce">CUBA SEKALI</button>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="kitaran">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" id="a4KitaranTitle" style="font-size:18px;">Jom cuba sekali dahulu 👀</h3>
+              <p class="glass-card__line glass-card__line--muted" style="margin-bottom:14px;">Ikut kemampuan awak. Kalau rasa tak selesa, berhenti sekejap.</p>
+
+              <div class="a4-leaf-tracker" id="a4LeafTracker" aria-hidden="true" hidden></div>
+
+              <div class="a4-breathing" id="a4BreathingLive">
+                <div class="a4-leaf-visual" id="a4LeafVisual" aria-hidden="true">🍃</div>
+                <p class="a4-phase-label" id="a4PhaseLabel">🌬️ Tarik nafas</p>
+                <p class="glass-card__line" id="a4PhaseInstruction">Tarik nafas perlahan-lahan melalui hidung.</p>
+                <div class="a4-countdown" id="a4Countdown" aria-live="polite">5</div>
+                <button type="button" class="btn btn--secondary btn--block" id="a4BtnPause">BERHENTI SEKEJAP</button>
+              </div>
+
+              <div class="a4-paused-panel" id="a4PausedPanel" hidden>
+                <p class="glass-card__line glass-card__line--lead">Tak apa. Ambil masa awak.</p>
+                <button type="button" class="btn btn--primary btn--block" id="a4BtnResume">SAMBUNG SEMULA</button>
+              </div>
+
+              <div class="a4-complete-panel" id="a4CompletePanel" hidden>
+                <div class="a4-leaf-visual a4-leaf-visual--fallen" aria-hidden="true">🍃</div>
+                <p class="glass-card__line glass-card__line--lead" id="a4CompleteTitle">Bagus! Itu satu pusingan pernafasan 5-3-5. 😊</p>
+                <p class="glass-card__line" id="a4CompleteLead" hidden></p>
+                <p class="a4-whisper" id="a4CompleteWhisper" hidden></p>
+                <p class="glass-card__line glass-card__line--muted" id="a4CompleteBody2" hidden></p>
+                <button type="button" class="btn btn--primary btn--block" id="a4BtnAfterCycle">JOM BUAT 3 KITARAN</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="refleksi-ketenangan">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">Macam mana rasa awak sekarang?</h3>
+              <p class="glass-card__line">Ambil masa sekejap.</p>
+              <p class="glass-card__line" style="margin-bottom:16px;">Tak perlu jawab tergesa-gesa.</p>
+              <div class="choice-grid" id="a4CalmnessGrid"></div>
+              <p class="glass-card__line glass-card__line--muted" id="a4CalmnessFeedback" style="margin-top:14px;" hidden></p>
+              <button type="button" class="btn btn--primary btn--block" id="a4BtnCalmnessNext" style="margin-top:8px;">TERUSKAN</button>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="refleksi-akhir">
+            <div class="glass-card glass-card--enter">
+              <h3 class="a1-title" style="font-size:18px;">💭 Apa yang awak belajar hari ini?</h3>
+              <div class="choice-grid" id="a4FinalReflectionGrid"></div>
+              <button type="button" class="btn btn--primary btn--block" id="a4BtnFinish" style="margin-top:8px;">SELESAI AKTIVITI</button>
+            </div>
+          </div>
+
+          <div class="a4-step" data-step="selesai">
+            <div class="glass-card glass-card--enter glass-card--celebrate">
+              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
+              <p class="glass-card__line glass-card__line--lead" id="a4SelesaiGreeting">Tahniah, Kawan!</p>
+              <p class="glass-card__line">Awak dah berjaya habiskan semua aktiviti dalam <strong>Kesedaran Kendiri</strong>!</p>
+
+              <div class="a4-cluster-complete">
+                <span class="a4-cluster-complete__label">KESEDARAN KENDIRI</span>
+                <span class="a4-cluster-complete__percent">100% SELESAI</span>
+              </div>
+
+              <div class="a4-checklist">
+                <div class="a4-checklist__row"><span class="a4-checklist__check">✓</span><span>Aktiviti 1 — Jom Kenali Emosi</span></div>
+                <div class="a4-checklist__row"><span class="a4-checklist__check">✓</span><span>Aktiviti 2 — Termometer Emosi</span></div>
+                <div class="a4-checklist__row"><span class="a4-checklist__check">✓</span><span>Aktiviti 3 — Chici Chaca Emosiku</span></div>
+                <div class="a4-checklist__row"><span class="a4-checklist__check">✓</span><span>Aktiviti 4 — Teknik Daun Luruh</span></div>
+              </div>
+            </div>
+
+            <div class="glass-card glass-card--enter" style="margin-top:16px;">
+              <h3 class="a1-title" style="font-size:17px;">Apa yang awak dah belajar?</h3>
+              <div class="a4-summary-journey">
+                <div class="a4-summary-journey__row"><span class="a4-summary-journey__icon">🙂</span><span><strong>Kenal emosi</strong><br>→ Aktiviti 1</span></div>
+                <div class="a4-summary-journey__row"><span class="a4-summary-journey__icon">🌡️</span><span><strong>Kenal tahap emosi</strong><br>→ Aktiviti 2</span></div>
+                <div class="a4-summary-journey__row"><span class="a4-summary-journey__icon">🎵</span><span><strong>Gunakan nyanyian dan pergerakan untuk relaksasi</strong><br>→ Aktiviti 3</span></div>
+                <div class="a4-summary-journey__row"><span class="a4-summary-journey__icon">🍃</span><span><strong>Gunakan teknik pernafasan 5-3-5</strong><br>→ Aktiviti 4</span></div>
+              </div>
+            </div>
+
+            <div class="glass-card glass-card--enter" id="certCard" style="margin-top:16px;">
+              <h3 class="a1-title" style="font-size:17px;">🏆 Kad Penyertaan</h3>
+
+              <div id="certStepIntro">
+                <p class="glass-card__line">Tahniah! Awak dah lengkapkan semua aktiviti APKESERI. Nak simpan kad penyertaan awak?</p>
+                <button type="button" class="btn btn--secondary btn--block" id="btnCertStart">MUAT TURUN KAD</button>
+              </div>
+
+              <div id="certStepName" hidden>
+                <label for="certNameInput" class="field-label">Nama pada kad</label>
+                <input
+                  type="text"
+                  id="certNameInput"
+                  class="field-input"
+                  maxlength="60"
+                  autocomplete="off"
+                >
+                <p class="field-error" id="certNameError" role="alert" hidden>Ops! Boleh masukkan nama awak dulu 😊</p>
+                <p class="glass-card__line glass-card__line--muted" style="margin-top:-6px;">Nama ini akan digunakan pada kad. Awak boleh ubah kalau perlu.</p>
+                <button type="button" class="btn btn--secondary btn--block" id="btnCertNameNext">TERUSKAN</button>
+              </div>
+
+              <div id="certStepPreview" hidden>
+                <p class="glass-card__line" style="margin-bottom:10px;">Ini pratonton kad awak:</p>
+
+                <div class="cert-preview-frame">
+                  <canvas id="certPreviewCanvas" class="cert-preview-canvas" aria-label="Pratonton Kad Penyertaan APKESERI"></canvas>
+                </div>
+
+                <button type="button" class="cert-edit-name-link" id="btnCertEditName">← Tukar nama</button>
+
+                <p class="glass-card__line glass-card__line--muted" id="certStatusMsg" style="min-height: 18px;"></p>
+
+                <div class="cert-format-buttons">
+                  <button type="button" class="btn btn--secondary" id="btnCertPdf">
+                    <span aria-hidden="true">📄</span> MUAT TURUN PDF
+                  </button>
+                  <button type="button" class="btn btn--secondary" id="btnCertJpeg">
+                    <span aria-hidden="true">🖼️</span> MUAT TURUN JPEG
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn--primary btn--block" id="a4BtnToDashboard" style="margin-top:18px;">KEMBALI KE DASHBOARD</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-review" data-screen="review">
+      <div class="screen__inner">
+
+        <div class="a1-topbar">
+          <span class="a1-step-indicator" style="margin-left:0;">Semakan Hasil</span>
+        </div>
+
+        <div class="glass-card glass-card--enter">
+          <h2 class="a1-title" id="reviewTitle">Hasil Aktiviti</h2>
+
+          <div class="a2-summary" id="reviewContent"></div>
+
+          <div id="reviewMainActions" class="review-actions">
+            <button type="button" class="btn btn--primary btn--block" id="btnReviewBack">KEMBALI</button>
+            <button type="button" class="btn btn--secondary btn--block" id="btnReviewRedo">ULANG AKTIVITI</button>
+          </div>
+
+          <div id="reviewConfirmRedo" class="review-actions" hidden>
+            <p class="glass-card__line glass-card__line--lead">Awak nak ulang aktiviti ini?</p>
+            <p class="glass-card__line glass-card__line--muted">Jawapan lama akan digantikan dengan jawapan baharu.</p>
+            <button type="button" class="btn btn--primary btn--block" id="btnReviewRedoYes">YA, ULANG</button>
+            <button type="button" class="btn btn--secondary btn--block" id="btnReviewRedoNo">TAK, KEMBALI</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <footer class="app-footer" id="appFooter" hidden>
+    <p>APKESERI 🌱 dibina khas untuk awak</p>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
