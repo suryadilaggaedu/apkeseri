@@ -1774,3 +1774,111 @@ a.btn.btn--block {
 .review-actions .btn + .btn {
   margin-top: 10px;
 }
+
+/* -----------------------------------------------------------
+   Modal — Tukar Pengguna? (Phase 4)
+----------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 31, 36, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modalFadeIn 0.2s var(--ease-soft) both;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  animation: cardIn 0.25s var(--ease-soft) both;
+}
+
+.modal-card__title {
+  margin-bottom: 4px;
+}
+
+.modal-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (min-width: 480px) {
+  .modal-card__actions {
+    flex-direction: row-reverse;
+  }
+}
+
+/* -----------------------------------------------------------
+   Onboarding — pilih pengguna sedia ada (Phase 4)
+----------------------------------------------------------- */
+
+.pick-user-link {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-500);
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+
+/* -----------------------------------------------------------
+   Skrin Counter Global (Fasa 5C)
+----------------------------------------------------------- */
+
+.counter-card {
+  text-align: center;
+}
+
+.counter-card__label {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink-700);
+  margin: 0;
+}
+
+.counter-card__number {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 56px;
+  line-height: 1.15;
+  margin: 4px 0 8px;
+  background: linear-gradient(120deg, var(--mint-600), var(--sky-600));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  word-break: break-word;
+}
+
+.counter-card .btn {
+  margin-top: 18px;
+}
+
+@media (min-width: 640px) {
+  .counter-card__number {
+    font-size: 68px;
+  }
+}

@@ -30,7 +30,26 @@
 // generator; istilah UI "sijil" ditukar kepada "kad". Templat lama
 // dikekalkan sebagai fail projek (tidak dipadam) tetapi tidak lagi
 // digunakan oleh generator.
-var CACHE_NAME = "apkeseri-v7";
+// v8: baiki bug video YouTube Aktiviti 3 terus main di latar
+// belakang selepas murid tinggalkan aktiviti/langkah tersebut —
+// script.js sahaja berubah (tiada aset baharu).
+// v9: buang butang "ULANG AKTIVITI" dan "TAK, KEMBALI" yang tidak
+// berfungsi pada skrin Semakan Hasil — index.html/script.js sahaja
+// berubah (tiada aset baharu, tiada logik lain diubah).
+// v10: Phase 4 — multi-user ringan (APKESERI_USERS/APKESERI_
+// ACTIVE_USER), modal "Tukar Pengguna?", pilih pengguna lama pada
+// onboarding — index.html/style.css/script.js berubah, tiada aset
+// baharu, tiada perubahan pada templat/manifest.
+// v11: Fasa 5C — skrin counter global (Supabase get_completion_count)
+// untuk first-time visitor sebelum intro sedia ada — index.html/
+// style.css/script.js berubah. Skrip CDN Supabase JS v2 (asal luar,
+// bukan sama-asal) SENGAJA tidak ditambah ke senarai cache di bawah,
+// selaras dasar sedia ada (spt. jsPDF) — tidak cache kandungan luaran
+// secara agresif; ia dimuatkan terus daripada CDN setiap kali online.
+// v12: Fasa 5D — pendaftaran completion global (register_completion)
+// selepas Aktiviti 4 benar-benar selesai, dengan pending/retry
+// offline — script.js sahaja berubah, tiada aset baharu.
+var CACHE_NAME = "apkeseri-v12";
 
 // Aset shell APKESERI sahaja — bukan video/YouTube.
 var APP_SHELL_ASSETS = [

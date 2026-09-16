@@ -59,7 +59,30 @@
 
   <main class="app-main" id="appMain">
 
-    <section class="screen is-active" id="screen-welcome" data-screen="welcome">
+    <section class="screen is-active" id="screen-counter" data-screen="counter">
+      <div class="screen__inner screen__inner--center">
+        <div class="brand-lockup">
+          <h1 class="brand-lockup__logo-wrap">
+            <img
+              src="assets/logo-apkeseri.png"
+              alt="APKESERI"
+              class="brand-lockup__logo"
+              width="2171"
+              height="724"
+            >
+          </h1>
+        </div>
+
+        <div class="glass-card glass-card--enter counter-card">
+          <p class="counter-card__label">Seramai</p>
+          <p class="counter-card__number" id="globalCompletionCount" aria-live="polite">—</p>
+          <p class="counter-card__label">orang telah melengkapkan aktiviti APKESERI</p>
+          <button type="button" class="btn btn--primary btn--block" id="btnCounterContinue">TERUSKAN</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-welcome" data-screen="welcome">
       <div class="screen__inner screen__inner--center">
         <div class="brand-lockup">
           <h1 class="brand-lockup__logo-wrap">
@@ -103,6 +126,13 @@
             <p class="field-error" id="nameError" role="alert" hidden>Ops! Boleh masukkan nama awak dulu 😊</p>
             <button type="submit" class="btn btn--primary btn--block">TERUSKAN</button>
           </form>
+
+          <button type="button" class="pick-user-link" id="btnPickUserToggle" hidden>Sudah pernah menggunakan APKESERI? PILIH PENGGUNA</button>
+
+          <div id="pickUserPanel" hidden>
+            <p class="glass-card__line glass-card__line--muted" style="margin-top:10px;">Pilih pengguna</p>
+            <div class="choice-grid" id="pickUserList"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -148,6 +178,10 @@
 
         <p class="dash-cert-reminder" id="dashCertReminder" hidden>
           Belum muat turun kad? <button type="button" class="dash-cert-reminder__link" id="btnDashCertReminder">MUAT TURUN KAD</button>
+        </p>
+
+        <p class="dash-cert-reminder" id="dashSwitchUserHint">
+          Pengguna baharu? <button type="button" class="dash-cert-reminder__link" id="btnSwitchUserHint">KLIK DI SINI</button>
         </p>
 
       </div>
@@ -335,7 +369,6 @@
 
           <div class="a1-step" data-step="selesai">
             <div class="glass-card glass-card--enter glass-card--celebrate">
-              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
               <p class="glass-card__line glass-card__line--lead">Tahniah!</p>
               <p class="glass-card__line">Awak dah berjaya selesaikan Aktiviti 2.</p>
               <p class="glass-card__line glass-card__line--muted">Awak sekarang dah tahu cara melihat aras emosi yang awak rasa.</p>
@@ -461,7 +494,6 @@
 
           <div class="a3-step" data-step="selesai">
             <div class="glass-card glass-card--enter glass-card--celebrate">
-              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
               <p class="glass-card__line glass-card__line--lead">Tahniah!</p>
               <p class="glass-card__line">Awak dah selesai Aktiviti 3!</p>
               <p class="glass-card__line glass-card__line--muted">Awak dah cuba menggunakan nyanyian dan pergerakan untuk membantu diri rasa lebih santai.</p>
@@ -595,7 +627,6 @@
 
           <div class="a4-step" data-step="selesai">
             <div class="glass-card glass-card--enter glass-card--celebrate">
-              <div class="glass-card__icon glass-card__icon--pop" aria-hidden="true">🎉</div>
               <p class="glass-card__line glass-card__line--lead" id="a4SelesaiGreeting">Tahniah, Kawan!</p>
               <p class="glass-card__line">Awak dah berjaya habiskan semua aktiviti dalam <strong>Kesedaran Kendiri</strong>!</p>
 
@@ -687,14 +718,12 @@
 
           <div id="reviewMainActions" class="review-actions">
             <button type="button" class="btn btn--primary btn--block" id="btnReviewBack">KEMBALI</button>
-            <button type="button" class="btn btn--secondary btn--block" id="btnReviewRedo">ULANG AKTIVITI</button>
           </div>
 
           <div id="reviewConfirmRedo" class="review-actions" hidden>
             <p class="glass-card__line glass-card__line--lead">Awak nak ulang aktiviti ini?</p>
             <p class="glass-card__line glass-card__line--muted">Jawapan lama akan digantikan dengan jawapan baharu.</p>
             <button type="button" class="btn btn--primary btn--block" id="btnReviewRedoYes">YA, ULANG</button>
-            <button type="button" class="btn btn--secondary btn--block" id="btnReviewRedoNo">TAK, KEMBALI</button>
           </div>
         </div>
 
@@ -711,6 +740,19 @@
 
 </div>
 
+<div class="modal-overlay" id="switchUserModal" hidden>
+  <div class="glass-card modal-card" role="dialog" aria-modal="true" aria-labelledby="switchUserModalTitle">
+    <h3 class="a1-title modal-card__title" id="switchUserModalTitle" style="font-size:19px;">Tukar pengguna?</h3>
+    <p class="glass-card__line">Progress pengguna semasa akan disimpan.</p>
+    <p class="glass-card__line">Pengguna baharu boleh memulakan APKESERI dengan nama mereka sendiri.</p>
+    <div class="modal-card__actions">
+      <button type="button" class="btn btn--secondary btn--block" id="btnSwitchUserCancel">BATAL</button>
+      <button type="button" class="btn btn--primary btn--block" id="btnSwitchUserConfirm">TERUSKAN</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>
 </html>

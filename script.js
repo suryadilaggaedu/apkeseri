@@ -6,8 +6,24 @@
 (function () {
   "use strict";
 
+  // Kunci lama (versi satu-pengguna). Dikekalkan HANYA untuk bacaan
+  // migrasi sekali sahaja — tidak dipadam, tidak ditulis lagi selepas
+  // migrasi berjaya.
   var STORAGE_KEY_USER = "APKESERI_USER";
   var STORAGE_KEY_PROGRESS = "APKESERI_PROGRESS";
+
+  // Kunci baharu (Phase 4 — multi-user ringan).
+  var STORAGE_KEY_USERS = "APKESERI_USERS";
+  var STORAGE_KEY_ACTIVE_USER = "APKESERI_ACTIVE_USER";
+
+  // Kunci baharu (Fasa 5C — counter global Supabase). Terasing
+  // sepenuhnya daripada storan pengguna/progress sedia ada di atas.
+  var STORAGE_KEY_GLOBAL_COUNT = "APKESERI_GLOBAL_COMPLETION_COUNT";
+  var STORAGE_KEY_COMPLETION_KEY = "APKESERI_COMPLETION_KEY";
+  var STORAGE_KEY_INTRO_SEEN = "APKESERI_INTRO_SEEN";
+
+  // Kunci baharu (Fasa 5D — pendaftaran completion global).
+  var STORAGE_KEY_PENDING_COMPLETION = "APKESERI_PENDING_COMPLETION";
 
   var CHIP_CIRCUMFERENCE = 97.4;
   var RING_CIRCUMFERENCE = 326.7;
@@ -49,25 +65,123 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     Multi-user store (Phase 4)
+
+     APKESERI_USERS = {
+       "AP-XXXXXX": { userId, name, createdAt, progress },
+       "AP-YYYYYY": { userId, name, createdAt, progress },
+       ...
+     }
+     APKESERI_ACTIVE_USER = "AP-XXXXXX" (userId string sahaja)
+
+     getUser() / saveUser() / getProgress() / saveProgress() KEKAL
+     nama dan bentuk pulangan yang sama seperti sebelum ini — semua
+     ~36 tempat panggilan sedia ada di seluruh Aktiviti 1-4, review,
+     sijil dsb. terus berfungsi tanpa diubah. Hanya IMPLEMENTASI
+     dalaman fungsi ini yang bertukar kepada beroperasi terhadap
+     pengguna AKTIF dalam APKESERI_USERS.
+  --------------------------------------------------------- */
+
+  function getUsersStore() {
+    return readJSON(STORAGE_KEY_USERS) || {};
+  }
+
+  function saveUsersStore(store) {
+    return writeJSON(STORAGE_KEY_USERS, store);
+  }
+
+  function getActiveUserId() {
+    return readJSON(STORAGE_KEY_ACTIVE_USER);
+  }
+
+  function setActiveUserId(userId) {
+    return writeJSON(STORAGE_KEY_ACTIVE_USER, userId);
+  }
+
+  // Senarai pengguna tersimpan pada peranti ini, untuk paparan
+  // "PILIH PENGGUNA" (nama sahaja — userId TIDAK dipaparkan kepada
+  // murid di mana-mana bahagian UI).
+  function listStoredUsers() {
+    var store = getUsersStore();
+    return Object.keys(store).map(function (id) {
+      return { userId: store[id].userId, name: store[id].name };
+    });
+  }
+
+  // Migrasi data lama (versi satu-pengguna) kepada struktur
+  // multi-user — dijalankan SEKALI sahaja, secara automatik, pada
+  // permulaan aplikasi. Tidak memadam APKESERI_USER/APKESERI_PROGRESS
+  // asal (backward compatibility + keselamatan data), hanya
+  // menyalinnya ke dalam APKESERI_USERS jika APKESERI_USERS belum
+  // wujud lagi.
+  function migrateLegacyUserIfNeeded() {
+    var existingStore = readJSON(STORAGE_KEY_USERS);
+    if (existingStore) return; // sudah dimigrasi — jangan buat apa-apa
+
+    var legacyUser = readJSON(STORAGE_KEY_USER);
+    if (!legacyUser || !legacyUser.userId) return; // tiada data lama untuk dimigrasi
+
+    var legacyProgress = readJSON(STORAGE_KEY_PROGRESS);
+
+    var newStore = {};
+    newStore[legacyUser.userId] = {
+      userId: legacyUser.userId,
+      name: legacyUser.name,
+      createdAt: legacyUser.createdAt,
+      progress: legacyProgress || createDefaultProgress()
+    };
+
+    saveUsersStore(newStore);
+    setActiveUserId(legacyUser.userId);
+  }
+
   function getUser() {
-    return readJSON(STORAGE_KEY_USER);
+    var activeId = getActiveUserId();
+    if (!activeId) return null;
+    var record = getUsersStore()[activeId];
+    if (!record) return null;
+    return { userId: record.userId, name: record.name, createdAt: record.createdAt };
   }
 
   function saveUser(user) {
-    return writeJSON(STORAGE_KEY_USER, user);
+    var store = getUsersStore();
+    var existing = store[user.userId];
+    store[user.userId] = {
+      userId: user.userId,
+      name: user.name,
+      createdAt: user.createdAt,
+      progress: existing && existing.progress ? existing.progress : createDefaultProgress()
+    };
+    var ok = saveUsersStore(store);
+    setActiveUserId(user.userId);
+    return ok;
   }
 
   function getProgress() {
-    var progress = readJSON(STORAGE_KEY_PROGRESS);
-    if (!progress) {
-      progress = createDefaultProgress();
-      writeJSON(STORAGE_KEY_PROGRESS, progress);
+    var activeId = getActiveUserId();
+    if (!activeId) return createDefaultProgress();
+
+    var store = getUsersStore();
+    var record = store[activeId];
+    if (!record) return createDefaultProgress();
+
+    if (!record.progress) {
+      record.progress = createDefaultProgress();
+      saveUsersStore(store);
     }
-    return progress;
+    return record.progress;
   }
 
   function saveProgress(progress) {
-    return writeJSON(STORAGE_KEY_PROGRESS, progress);
+    var activeId = getActiveUserId();
+    if (!activeId) return false;
+
+    var store = getUsersStore();
+    if (!store[activeId]) return false;
+
+    store[activeId].progress = progress;
+    return saveUsersStore(store);
   }
 
   function createDefaultProgress() {
@@ -124,6 +238,15 @@
     activityList: document.getElementById("activityList"),
     dashCertReminder: document.getElementById("dashCertReminder"),
     btnDashCertReminder: document.getElementById("btnDashCertReminder"),
+    btnSwitchUserHint: document.getElementById("btnSwitchUserHint"),
+
+    switchUserModal: document.getElementById("switchUserModal"),
+    btnSwitchUserCancel: document.getElementById("btnSwitchUserCancel"),
+    btnSwitchUserConfirm: document.getElementById("btnSwitchUserConfirm"),
+
+    btnPickUserToggle: document.getElementById("btnPickUserToggle"),
+    pickUserPanel: document.getElementById("pickUserPanel"),
+    pickUserList: document.getElementById("pickUserList"),
 
     toast: document.getElementById("toast")
   };
@@ -135,10 +258,21 @@
   --------------------------------------------------------- */
 
   function showScreen(name) {
+    var currentScreenEl = document.querySelector(".screen.is-active");
+    var currentName = currentScreenEl ? currentScreenEl.getAttribute("data-screen") : null;
+
+    if (currentName === "activity-3" && name !== "activity-3") {
+      stopA3Video();
+    }
+
     var screens = document.querySelectorAll(".screen");
     screens.forEach(function (screen) {
       screen.classList.toggle("is-active", screen.getAttribute("data-screen") === name);
     });
+
+    if (name === "activity-3") {
+      restoreA3Video();
+    }
 
     var isAppScreen = name === "dashboard" || name === "activity-1" || name === "activity-2" || name === "activity-3" || name === "activity-4" || name === "review";
     el.header.hidden = !isAppScreen;
@@ -188,7 +322,11 @@
   }
 
   function createProfile(name) {
+    var usersStore = getUsersStore();
     var userId = generateUserId();
+    while (usersStore[userId]) {
+      userId = generateUserId();
+    }
     var user = {
       userId: userId,
       name: name,
@@ -239,6 +377,14 @@
       if (entry && entry.status === "completed") completed++;
     });
     return Math.round((completed / total) * 100);
+  }
+
+  // Fasa 5E-2 — semakan eksplisit tambahan (defence-in-depth) supaya
+  // Kad Penyertaan tidak pernah bergantung semata-mata pada andaian
+  // rantaian locking. Tidak mengubah computeOverallPercent()/logik
+  // progress sedia ada — hanya membaca hasilnya.
+  function hasFullProgress() {
+    return computeOverallPercent(getProgress()) === 100;
   }
 
   function updateProgressUI(progress) {
@@ -667,6 +813,11 @@
   }
 
   function finishActivity1() {
+    if (a1State.reflection.length === 0) {
+      showToast("Pilih sekurang-kurangnya satu perkara yang awak dah belajar.");
+      return;
+    }
+
     var progress = getProgress();
     var emotion = findEmotion(a1State.emotion);
 
@@ -1139,6 +1290,7 @@
     btnIntroStart: document.getElementById("a3BtnIntroStart"),
     btnReady: document.getElementById("a3BtnReady"),
     btnVideoDone: document.getElementById("a3BtnVideoDone"),
+    videoFrame: document.getElementById("a3VideoFrame"),
     emotionGrid: document.getElementById("a3EmotionGrid"),
     emotionFeedback: document.getElementById("a3EmotionFeedback"),
     btnEmotionNext: document.getElementById("a3BtnEmotionNext"),
@@ -1159,9 +1311,38 @@
     finalReflection: null
   };
 
+  // Simpan URL video asal SEKALI (daripada HTML asal, tidak diubah)
+  // supaya iframe boleh "dihentikan" (src dikosongkan — cara paling
+  // mudah & stabil untuk hentikan video+audio YouTube tanpa YouTube
+  // API) apabila murid tinggalkan Aktiviti 3, dan dipulihkan semula
+  // apabila Aktiviti 3 dibuka semula.
+  var a3VideoSrc = a3El.videoFrame ? a3El.videoFrame.getAttribute("src") : "";
+
+  function stopA3Video() {
+    if (a3El.videoFrame) {
+      a3El.videoFrame.setAttribute("src", "");
+    }
+  }
+
+  function restoreA3Video() {
+    if (a3El.videoFrame && a3El.videoFrame.getAttribute("src") !== a3VideoSrc) {
+      a3El.videoFrame.setAttribute("src", a3VideoSrc);
+    }
+  }
+
   function goToA3Step(index) {
     a3State.stepIndex = index;
     var stepName = A3_STEP_ORDER[index];
+
+    // Video hanya sepatutnya boleh dimainkan semasa langkah "video".
+    // Beralih ke mana-mana langkah lain (termasuk teruskan atau
+    // kembali) mesti hentikan video serta-merta, tanpa perlu murid
+    // tekan pause dahulu.
+    if (stepName === "video") {
+      restoreA3Video();
+    } else {
+      stopA3Video();
+    }
 
     var steps = document.querySelectorAll("#a3Steps .a3-step");
     steps.forEach(function (step) {
@@ -1760,6 +1941,8 @@
     saveProgress(progress);
     updateProgressUI(progress);
 
+    registerGlobalCompletion();
+
     resetCertFlow();
     goToA4Step(A4_STEP_ORDER.indexOf("selesai"));
   }
@@ -2175,6 +2358,7 @@
   }
 
   function resetCertFlow() {
+    if (!hasFullProgress()) return;
     if (!certEl.card) return;
 
     var user = getUser();
@@ -2237,6 +2421,8 @@
   // Dashboard — untuk pautan peringatan "MUAT TURUN KAD". Hanya
   // dipanggil apabila aktiviti-4 sudah completed (disahkan sebelum ini).
   function openCertFromDashboard() {
+    if (!hasFullProgress()) return;
+
     var user = getUser();
     if (user) {
       a4El.selesaiGreeting.textContent = "Tahniah, " + user.name + "!";
@@ -2257,10 +2443,8 @@
     content: document.getElementById("reviewContent"),
     mainActions: document.getElementById("reviewMainActions"),
     btnBack: document.getElementById("btnReviewBack"),
-    btnRedo: document.getElementById("btnReviewRedo"),
     confirmRedo: document.getElementById("reviewConfirmRedo"),
-    btnRedoYes: document.getElementById("btnReviewRedoYes"),
-    btnRedoNo: document.getElementById("btnReviewRedoNo")
+    btnRedoYes: document.getElementById("btnReviewRedoYes")
   };
 
   var reviewState = { activityId: null };
@@ -2377,16 +2561,6 @@
   function initReviewFlow() {
     reviewEl.btnBack.addEventListener("click", renderDashboard);
 
-    reviewEl.btnRedo.addEventListener("click", function () {
-      reviewEl.mainActions.hidden = true;
-      reviewEl.confirmRedo.hidden = false;
-    });
-
-    reviewEl.btnRedoNo.addEventListener("click", function () {
-      reviewEl.confirmRedo.hidden = true;
-      reviewEl.mainActions.hidden = false;
-    });
-
     reviewEl.btnRedoYes.addEventListener("click", function () {
       var activityId = reviewState.activityId;
       if (activityId) restartActivity(activityId);
@@ -2394,14 +2568,305 @@
   }
 
   /* ---------------------------------------------------------
+     TUKAR PENGGUNA (Phase 4) — modal pengesahan pada Dashboard,
+     dan senarai "pilih pengguna sedia ada" pada skrin onboarding.
+     Tidak memadam atau menimpa data pengguna lain.
+  --------------------------------------------------------- */
+
+  // Sediakan & papar skrin onboarding kosong — digunakan semasa
+  // pengguna pertama kali ("MULA" daripada Welcome) DAN semasa
+  // menukar ke pengguna baharu (selepas sahkan modal Tukar Pengguna).
+  function openOnboardingScreen() {
+    el.nameInput.value = "";
+    el.nameError.hidden = true;
+    el.nameInput.classList.remove("is-invalid");
+
+    el.pickUserPanel.hidden = true;
+    el.pickUserList.innerHTML = "";
+
+    var users = listStoredUsers();
+    el.btnPickUserToggle.hidden = users.length === 0;
+
+    showScreen("onboarding");
+    setTimeout(function () { el.nameInput.focus(); }, 50);
+  }
+
+  function openSwitchUserModal() {
+    el.switchUserModal.hidden = false;
+  }
+
+  function closeSwitchUserModal() {
+    el.switchUserModal.hidden = true;
+  }
+
+  function buildPickUserList() {
+    el.pickUserList.innerHTML = "";
+    var users = listStoredUsers();
+
+    users.forEach(function (user) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "choice-card";
+
+      var labelSpan = document.createElement("span");
+      labelSpan.className = "choice-card__label";
+      labelSpan.textContent = user.name;
+
+      btn.appendChild(labelSpan);
+      btn.addEventListener("click", function () {
+        selectExistingUser(user.userId);
+      });
+
+      el.pickUserList.appendChild(btn);
+    });
+  }
+
+  // Pengguna sedia ada memilih namanya sendiri — tetapkan sebagai
+  // aktif dan pulihkan Dashboard mereka. Tidak mencipta pengguna
+  // baharu, tidak mengubah progress sesiapa.
+  function selectExistingUser(userId) {
+    setActiveUserId(userId);
+    renderDashboard();
+  }
+
+  function initSwitchUserFlow() {
+    el.btnSwitchUserHint.addEventListener("click", openSwitchUserModal);
+
+    el.btnSwitchUserCancel.addEventListener("click", closeSwitchUserModal);
+
+    el.btnSwitchUserConfirm.addEventListener("click", function () {
+      // Progress pengguna semasa sudah tersimpan secara berterusan
+      // (setiap saveProgress() menulis terus ke rekod pengguna aktif
+      // dalam APKESERI_USERS) — tiada tindakan "simpan" tambahan
+      // diperlukan di sini. Kita hanya tutup modal dan buka
+      // onboarding untuk pengguna baharu; pengguna semasa KEKAL
+      // dalam APKESERI_USERS dan boleh dipilih semula kemudian.
+      closeSwitchUserModal();
+      openOnboardingScreen();
+    });
+
+    el.btnPickUserToggle.addEventListener("click", function () {
+      var willShow = el.pickUserPanel.hidden;
+      if (willShow) buildPickUserList();
+      el.pickUserPanel.hidden = !willShow;
+    });
+  }
+
+  /* ---------------------------------------------------------
+     FASA 5C — Integrasi Supabase (counter completion global)
+
+     Terasing sepenuhnya daripada sistem pengguna/progress sedia
+     ada. Tiada nama murid, userId, jawapan aktiviti atau progress
+     dihantar ke Supabase — hanya membaca satu nombor agregat
+     (get_completion_count). register_completion() BELUM dipanggil
+     dalam fasa ini (akan datang pada Fasa 5D).
+  --------------------------------------------------------- */
+
+  var SUPABASE_URL = "https://stghghafudrctskkcgcv.supabase.co";
+  var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_wHkFjUXxS2qQyVtRvJNbGA_w7SKqSiM";
+
+  // Client Supabase — dibina secara defensif. Jika skrip CDN gagal
+  // dimuatkan (offline / disekat), supabaseClient kekal null dan
+  // APKESERI terus berfungsi seperti biasa (lihat fallback di bawah).
+  var supabaseClient = null;
+  try {
+    if (typeof window !== "undefined" && window.supabase && typeof window.supabase.createClient === "function") {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    }
+  } catch (e) {
+    supabaseClient = null;
+  }
+
+  function getCachedGlobalCount() {
+    var cached = readJSON(STORAGE_KEY_GLOBAL_COUNT);
+    return typeof cached === "number" ? cached : null;
+  }
+
+  function setCachedGlobalCount(count) {
+    if (typeof count === "number") {
+      writeJSON(STORAGE_KEY_GLOBAL_COUNT, count);
+    }
+  }
+
+  // Cuba ekstrak nilai numerik daripada pelbagai bentuk pulangan RPC
+  // yang mungkin (skalar terus, array baris, atau objek satu medan).
+  function extractCountValue(data) {
+    if (typeof data === "number") return data;
+    if (Array.isArray(data) && data.length > 0) {
+      var row = data[0];
+      if (typeof row === "number") return row;
+      if (row && typeof row === "object") {
+        var keys = Object.keys(row);
+        if (keys.length > 0 && typeof row[keys[0]] === "number") return row[keys[0]];
+      }
+    }
+    if (data && typeof data === "object") {
+      var k2 = Object.keys(data);
+      if (k2.length > 0 && typeof data[k2[0]] === "number") return data[k2[0]];
+    }
+    return null;
+  }
+
+  // Dapatkan jumlah completion global. Jika Supabase tidak tersedia
+  // atau permintaan gagal, guna nilai cache terakhir yang berjaya —
+  // jangan sekali-kali pulangkan 0 sebagai andaian gagal, dan jangan
+  // hentikan APKESERI.
+  async function fetchGlobalCompletionCount() {
+    if (!supabaseClient) {
+      return getCachedGlobalCount();
+    }
+
+    try {
+      var result = await supabaseClient.rpc("get_completion_count");
+      if (result && result.error) {
+        return getCachedGlobalCount();
+      }
+      var count = extractCountValue(result ? result.data : null);
+      if (typeof count === "number") {
+        setCachedGlobalCount(count);
+        return count;
+      }
+      return getCachedGlobalCount();
+    } catch (e) {
+      return getCachedGlobalCount();
+    }
+  }
+
+  // Completion key — dijana SEKALI sahaja, disimpan, TIDAK dikaitkan
+  // dengan nama/userId murid. Belum dihantar ke Supabase dalam
+  // Fasa 5C — hanya disediakan untuk Fasa 5D akan datang.
+  function ensureCompletionKey() {
+    var existing = readJSON(STORAGE_KEY_COMPLETION_KEY);
+    if (existing) return existing;
+
+    var uuid;
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      uuid = crypto.randomUUID();
+    } else {
+      uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        var v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    var key = "APKESERI-COMP-" + uuid;
+    writeJSON(STORAGE_KEY_COMPLETION_KEY, key);
+    return key;
+  }
+
+  function hasSeenIntro() {
+    return readJSON(STORAGE_KEY_INTRO_SEEN) === true;
+  }
+
+  function markIntroSeen() {
+    writeJSON(STORAGE_KEY_INTRO_SEEN, true);
+  }
+
+  function formatGlobalCount(count) {
+    if (typeof count !== "number") return "\u2014";
+    try {
+      return count.toLocaleString("ms-MY");
+    } catch (e) {
+      return String(count);
+    }
+  }
+
+  var counterEl = {
+    number: document.getElementById("globalCompletionCount"),
+    btnContinue: document.getElementById("btnCounterContinue")
+  };
+
+  function showCounterScreen() {
+    ensureCompletionKey();
+
+    counterEl.number.textContent = formatGlobalCount(getCachedGlobalCount());
+    showScreen("counter");
+
+    fetchGlobalCompletionCount().then(function (count) {
+      counterEl.number.textContent = formatGlobalCount(count);
+    });
+  }
+
+  function initCounterScreen() {
+    counterEl.btnContinue.addEventListener("click", function () {
+      markIntroSeen();
+      showScreen("welcome");
+    });
+  }
+
+  /* ---------------------------------------------------------
+     FASA 5D — Pendaftaran completion global selepas Aktiviti 4
+
+     Guna SEMULA completion key sedia ada daripada Fasa 5C
+     (ensureCompletionKey() — tidak pernah jana key baharu untuk
+     completion yang sama). Duplicate dikendalikan oleh unique
+     constraint pada Supabase sendiri — client tidak cuba menghalang
+     panggilan berulang, hanya sentiasa hantar key yang SAMA.
+     Tiada nama/userId/jawapan/progress dihantar — hanya completionKey.
+  --------------------------------------------------------- */
+
+  function getPendingCompletion() {
+    return readJSON(STORAGE_KEY_PENDING_COMPLETION) === true;
+  }
+
+  function setPendingCompletion(isPending) {
+    if (isPending) {
+      writeJSON(STORAGE_KEY_PENDING_COMPLETION, true);
+    } else {
+      writeJSON(STORAGE_KEY_PENDING_COMPLETION, false);
+    }
+  }
+
+  // Daftar completion sebenar A4 dengan Supabase. Dipanggil "fire
+  // and forget" (tidak menyekat UI) daripada finishActivity4() sahaja
+  // — bukan daripada buka/review/render A4. Jika gagal/offline, tanda
+  // pending supaya dicuba semula kemudian — tidak retry agresif.
+  async function registerGlobalCompletion() {
+    var completionKey = ensureCompletionKey();
+
+    if (!supabaseClient) {
+      setPendingCompletion(true);
+      return;
+    }
+
+    try {
+      var result = await supabaseClient.rpc("register_completion", {
+        p_completion_key: completionKey
+      });
+
+      if (result && result.error) {
+        setPendingCompletion(true);
+        return;
+      }
+
+      var count = extractCountValue(result ? result.data : null);
+      if (typeof count === "number") {
+        setCachedGlobalCount(count);
+      }
+      setPendingCompletion(false);
+    } catch (e) {
+      setPendingCompletion(true);
+    }
+  }
+
+  // Cuba semula pendaftaran yang tertunda — dipanggil sekali apabila
+  // aplikasi dibuka semula, dan apabila peranti kembali online.
+  // Bukan gelung/polling — hanya satu percubaan setiap peluang.
+  function retryPendingCompletionIfNeeded() {
+    if (getPendingCompletion()) {
+      registerGlobalCompletion();
+    }
+  }
+
+  /* ---------------------------------------------------------
      Init / resume session
   --------------------------------------------------------- */
 
   function init() {
-    el.btnStart.addEventListener("click", function () {
-      showScreen("onboarding");
-      setTimeout(function () { el.nameInput.focus(); }, 50);
-    });
+    migrateLegacyUserIfNeeded();
+
+    el.btnStart.addEventListener("click", openOnboardingScreen);
 
     el.onboardingForm.addEventListener("submit", handleOnboardingSubmit);
     el.nameInput.addEventListener("input", clearNameError);
@@ -2421,13 +2886,26 @@
     initActivity4();
     initCertFlow();
     initReviewFlow();
+    initSwitchUserFlow();
+    initCounterScreen();
 
     var existingUser = getUser();
     if (existingUser && existingUser.userId) {
+      // Pengguna sedia ada (ada profil/progress) — jangan anggap
+      // pengguna pertama, jangan paksa lalui counter/onboarding lagi.
+      markIntroSeen();
       renderDashboard();
+    } else if (!hasSeenIntro()) {
+      showCounterScreen();
     } else {
       showScreen("welcome");
     }
+
+    // Fasa 5D — cuba semula pendaftaran completion yang tertunda:
+    // sekali apabila aplikasi dibuka semula, dan setiap kali peranti
+    // kembali online. Tidak retry agresif/gelung.
+    retryPendingCompletionIfNeeded();
+    window.addEventListener("online", retryPendingCompletionIfNeeded);
   }
 
   if (document.readyState === "loading") {
